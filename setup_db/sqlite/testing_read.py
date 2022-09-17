@@ -6,7 +6,7 @@ def get_games(cursor):
     cursor.execute("SELECT * FROM game LIMIT 10")
     results = [Game(*result) for result in cursor.fetchall()]
     for result in results:
-        result.data_types = result.data_types.split(", ")
+        result.data_types = sorted(result.data_types.split(", "))
     return results
 
 

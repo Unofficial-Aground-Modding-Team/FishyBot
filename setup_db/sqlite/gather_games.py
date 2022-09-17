@@ -155,10 +155,15 @@ def gather() -> tuple[dict[str, Game], dict[str, GameRecord]]:
             else:
                 data[key] = record
             
-            _games_tags.setdefault(record.game_id, set()).add(record.tag)
+            _games_tags.setdefault(record.game_id, set()).add(record.tag + (":P1" if record.is_public else ":P0"))
 
     for game_id, game_tags in _games_tags.items():
-        games[game_id].data_types = list(game_tags)
+        tags = [
+            tag for tag in game_tags
+            # Remove private tags that also appeared as public tags
+            if (tag.endswith(":P1") or ((tag[:-1]+"1") not in game_tags))
+        ]
+        games[game_id].data_types = tags
 
     return games, data
 

@@ -34,7 +34,9 @@ def get_possible_tags(game: str, tag_prefix: str, include_hidden: bool) -> list[
             raise GameNotFoundError()
         tags = game[1].split(", ")
         for tag in tags:
-            if tag.startswith(tag_prefix):
+            tag, tag_is_public = tag.rsplit(":P", 1)
+            tag_is_public = bool(int(tag_is_public))
+            if tag.startswith(tag_prefix) and (tag_is_public or include_hidden):
                 results.append(tag)
     return results
 
