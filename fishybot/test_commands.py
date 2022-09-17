@@ -24,6 +24,17 @@ commands = [
     # ("help", "xmlsearch"),
     # ("help", "notes"),
     # ("help", "other"),
+
+    # ("modio", "game", "aground"),
+    # ("modio", "game", "34"),
+
+    # ("modio", "mod", "aground", "magic"),
+    # ("modio", "mod", "aground", "magic", True),
+    # ("modio", "mod", "aground", "144"),
+    # ("modio", "mod", "aground", "aster"),
+
+    # ("comments", "check"),
+    # ("comments", "run"),
 ]
 
 handlers = [
@@ -40,14 +51,21 @@ autocompletes = [
     
     # ("fullsearch", "aground_zero", ""),
     
-    ("xmlsearch", ""),
+    # ("xmlsearch", ""),
+
+    # ("modio", "mod", "34", "magic"),
+    # ("modio", "mod", "aground", "magic"),
+    # ("modio", "mod", "aground", ""),
+    # ("modio", "mod", "34", ""),
 ]
 
 with open("test.log", 'w') as file:
     for command in commands:
-        test = client.run(*command)
-        print(command, test, end='\n\n')
-        print(command, test, sep='\n', end='\n\n', file=file)
+        ctx = Context(guild_id="903078036272975922")
+        with client.context(ctx):
+            test = client.run(*command)
+            print(command, test, end='\n\n')
+            print(command, test, sep='\n', end='\n\n', file=file)
 
     for handler_id, value in handlers:
         ctx = Context(values=[value])

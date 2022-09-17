@@ -1,1 +1,1 @@
-deta-discord-interactions==0.0.3
+git+https://github.com/etrotta/flask-discord-interactions@c90f6a911012d35523132753d4c6d68d98215733
