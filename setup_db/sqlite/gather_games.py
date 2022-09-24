@@ -1,11 +1,10 @@
 import re
 from typing import Generator
-from lxml import etree
 from pathlib import Path
 
 from model import Game, GameRecord
 
-PARSER = etree.XMLParser(recover=True)
+from xmlparser import XmlNode, parse
 
 
 def get_paths_to_search(prefix: Path, games: list[Game]) -> Generator[tuple[Game, str, Path], None, None]:
@@ -37,13 +36,13 @@ def get_paths_to_search(prefix: Path, games: list[Game]) -> Generator[tuple[Game
                     )
 
 
-def should_ignore_node(element: etree._Element):
-    if element.tag == "tilesheet":
-        if re.match(r"\w+\.\d+", element.get("id")):
+def should_ignore_node(element: XmlNode):
+    if element.name == "tilesheet":
+        if re.match(r"\w+\.\d+", element.attributes.get("id")):
             return True
 
 
-def process_lang(game: Game, mod: str, root: etree._Element):
+def process_lang(game: Game, mod: str, root: XmlNode):
     # TODO SAVE IT IN SOME WAY
     # print(f"Process lang called for {game.full_name} {mod} {root.get('id')}")
     pass
@@ -68,23 +67,25 @@ def crawl_file(
     """Craws a file and yields all GameRecords found.
     Recursively follows <include>s.
     """
-    tree: etree._ElementTree = etree.parse(filepath, parser=PARSER)
-    root: etree._Element = tree.getroot()
+    # tree: etree._ElementTree = etree.parse(filepath, parser=PARSER)
+    # root: etree._Element = tree.getroot()
+    with open(filepath, 'r', encoding='utf-8') as file:
+        root = parse(file.read())
 
-    def process_element(element):
+    def process_element(element: XmlNode):
         if should_ignore_node(element):
             return
-        id_ = element.get("id")
-        tag = element.tag
+        id_ = element.attributes.get("id")
+        tag = element.name
         if tag == "include":
-            include_target: Path = filepath.parent / element.get("id")
+            include_target: Path = filepath.parent / id_
             if include_target.is_file():
                 yield from crawl_file(
                     game,
                     check_sub_mod(mod, include_target),
                     prefix_path,
                     include_target,
-                    element.get("includeRoot") == "true",
+                    element.attributes.get("includeRoot") == "true",
                 )
             else:
                 # Known to happen to: Aground\data\mods\full\music\music.xml
@@ -98,17 +99,19 @@ def crawl_file(
                 tag,
                 id_,
                 str(filepath.relative_to(prefix_path)).replace("\\", "/"),
-                game.is_public and mod == "core",
-                etree.tostring(element, pretty_print=True).decode(),
+                game.is_public and (mod == "core" or mod == "full"),
+                element.to_string(),
             )
 
     if include_root:
         yield from process_element(root)
     elif filepath.name == "mod.xml":
-        for child in root.find("init"):
-            yield from process_element(child)
+        for child in root.children:
+            if child.name == "init":
+                for subchild in child.children:
+                    yield from process_element(subchild)
     else:
-        for child in root:
+        for child in root.children:
             yield from process_element(child)
 
 
@@ -119,8 +122,8 @@ def gather() -> tuple[dict[str, Game], dict[str, GameRecord]]:
     games = {
         "aground": Game("aground", 34, "Aground", None, True),
         "stardander_revenant": Game("stardander_revenant", -1, "Stardander Revenant", None, True),
-        "aground_zero": Game("aground_zero", -1, "Aground Zero Playtest", None, False),
-        "stardander": Game("stardander", -1, "Stardander Playtest", None, False),
+        # "aground_zero": Game("aground_zero", -1, "Aground Zero Playtest", None, False),
+        # "stardander": Game("stardander", -1, "Stardander Playtest", None, False),
     }
     _games_tags: dict[str, set[str]] = {}
 

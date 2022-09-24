@@ -17,8 +17,8 @@ def insert_data(games: dict[str, Game], games_data: dict[str, GameRecord]):
         cur.execute("DROP TABLE IF EXISTS game")
         cur.execute("DROP TABLE IF EXISTS game_record")
 
-        cur.execute("CREATE TABLE IF NOT EXISTS game (id, modio_id, full_name, data_types, is_public)")
-        cur.execute("CREATE TABLE IF NOT EXISTS game_record (game_id, mod, tag, id, path, is_public, xml)")
+        cur.execute("CREATE TABLE game (id, modio_id, full_name, data_types, is_public)")
+        cur.execute("CREATE TABLE game_record (game_id, mod, tag, id, path, is_public, xml)")
 
         games = (dataclasses.astuple(game) for game in games.values())
         games_data = (dataclasses.astuple(record) for record in games_data.values())
