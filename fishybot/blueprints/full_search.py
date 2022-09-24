@@ -8,7 +8,7 @@ from deta_discord_interactions.enums import PERMISSION
 
 
 from common.config import BOT_COLOR
-from common.exceptions import GameNotFoundError
+from common.exceptions import GameNotFoundError, RecordNotFoundError
 from database.sqlite_model import GameRecord
 from database.operations import get_possible_games, get_possible_tags, get_exact_record, get_matching_records
 
@@ -21,7 +21,7 @@ def list_search_menu(data: list[GameRecord]):
     for item in data:
         options.append(SelectMenuOption(
             label=item.id,
-            value=f"{item.id}@{item.tag}@{item.game_id}",
+            value=f"{item.id}@{item.tag}@{item.mod}@{item.game_id}",
             description=item.path,
         ))
 
@@ -34,8 +34,8 @@ def list_search_menu(data: list[GameRecord]):
 
 @bp.custom_handler("select_data_ih")
 def dropdown_callback(ctx: Context):
-    id_, tag_, game_ = ctx.values[0].split("@")
-    record = get_exact_record(game_, tag_, id_, include_xml=True, include_hidden=True)
+    id_, tag_, mod_, game_ = ctx.values[0].split("@")
+    record = get_exact_record(game_, mod_, tag_, id_, include_xml=True, include_hidden=True)
     message = "```xml\n" + record.xml.strip() + "\n"
     if len(message) >= 1990:
         NL = "\n"
@@ -65,7 +65,14 @@ def search_ih(
     public: bool = False,
 ):
     """Searches my database for IDs and returns a dropdown menu with the matches."""
-    records = get_matching_records(game, tag, id or '', include_xml=True, include_hidden=True)
+    if isinstance(id, str) and "@mod@" in id:
+        id, mod = id.split("@mod@", 1)
+        try:
+            records = [get_exact_record(game, mod, tag, id, include_xml=True, include_hidden=True)]
+        except RecordNotFoundError:
+            records = []
+    else:
+        records = get_matching_records(game, tag, id or '', include_xml=True, include_hidden=True)
 
     if not records:  # No matches
         message = Message(
@@ -114,6 +121,9 @@ def autocomplete_search_ih(
             return []
     elif id is not None and id.focused:  # Game and Tag should ALWAYS be filled before id
         records = get_matching_records(game.value, tag.value, id.value, include_xml=False, include_hidden=True, limit=25)
-        return [record.id for record in records]
+        return [
+            Choice(f"{record.id}: {record.path}", f"{record.id}@mod@{record.mod}")
+            for record in records
+        ]
     else:
         return []

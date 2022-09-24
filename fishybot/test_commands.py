@@ -9,7 +9,8 @@ commands = [
     # ("cursed", "waifu"),
 
     # ("search", "aground", "item", "wyrm"),
-    # ("search", "aground", "item"),
+    # ("search", "aground", "item", "wyrm@mod@core"),
+    # ("fullsearch", "aground", "item", "wyrm"),
 
     # ("xmlsearch", "aground", "item", """[@attack]"""),
     # ("xmlsearch", "aground", "item", """[@cost="0"]"""),

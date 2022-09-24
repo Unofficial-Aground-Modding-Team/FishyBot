@@ -41,19 +41,19 @@ def get_possible_tags(game: str, tag_prefix: str, include_hidden: bool) -> list[
     return results
 
 
-def get_exact_record(game: str, tag: str, record_id: str, include_xml: bool, include_hidden: bool) -> GameRecord:
+def get_exact_record(game: str, mod: str, tag: str, record_id: str, include_xml: bool, include_hidden: bool) -> GameRecord:
     """Return a single `tag` GameRecord for `game` whose `id` exactly matches `id_part`.
     Raises RecordNotFoundError if there isn't one that perfectly matches it."""
     if include_xml:
         query = """SELECT game_id, mod, tag, id, path, is_public, xml
-        FROM game_record WHERE game_id = ? AND tag = ? AND id = ?"""
+        FROM game_record WHERE game_id = ? AND mod = ? AND tag = ? AND id = ?"""
     else:
         query = """SELECT game_id, mod, tag, id, path, is_public
-        FROM game_record WHERE game_id = ? AND tag = ? AND id = ?"""
+        FROM game_record WHERE game_id = ? AND mod = ? AND tag = ? AND id = ?"""
     if not include_hidden:
         query += " AND is_public=1"
     with sqlite3.connect("fancyfish.sqlite") as connection:
-        row = connection.execute(query, (game, tag, record_id)).fetchone()
+        row = connection.execute(query, (game, mod, tag, record_id)).fetchone()
         if row is None:
             raise RecordNotFoundError()
         return GameRecord(*row)
