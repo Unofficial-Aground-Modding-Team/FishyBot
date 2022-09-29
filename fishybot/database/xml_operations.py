@@ -3,9 +3,6 @@ from xml.etree import ElementTree
 
 from database.sqlite_model import GameRecord
 from common.exceptions import InvalidQueryError
-# from sqlite_model import GameRecord
-# class InvalidQueryError():
-#     pass
 
 
 def get_matching_records(game: str, tag: str, xpath: str, include_hidden: bool, limit: int = 25) -> list[GameRecord]:
@@ -23,8 +20,9 @@ def get_matching_records(game: str, tag: str, xpath: str, include_hidden: bool, 
                     results.append(record)
                     if len(results) >= limit:
                         break
+            except ElementTree.ParseError:
+                continue
             except Exception:
-                # breakpoint()
                 raise InvalidQueryError(xpath, record)
     return results
 

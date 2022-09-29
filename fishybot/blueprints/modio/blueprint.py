@@ -1,3 +1,4 @@
+from datetime import datetime
 import json
 # from concurrent import futures
 import math
@@ -90,7 +91,19 @@ def game_info(ctx: Context, game: Autocomplete[str]):
     if data is None:
         return Message("Game not found", ephemeral=True)
 
-    return Message(f"TODO add relevant information and format nicely // game name: {data.name}", ephemeral=True)
+    return Message(
+        embed=Embed(
+            title=data.name,
+            description=data.summary,
+            url=data.profile_url,
+            timestamp=datetime.fromtimestamp(data.date_live).isoformat(),
+            image=embed.Media(
+                url=data.logo.thumb_640x360,
+            ),
+            color=BOT_COLOR,
+        ),
+        ephemeral=True,
+    )
 
 @game_info.autocomplete()
 def game_info_autocomplete(
@@ -147,10 +160,34 @@ def mod_info(ctx: Context, game: Autocomplete[str], mod: Autocomplete[str], forc
     if not mods:  # If no mods were found on the database nor in mod.io
         return Message("No matching mods found", ephemeral=True)
     elif len(mods) > 1:  # If more than one mod was found on the database or in mod.io
+        # TODO: Future improvement: Return a Select Menu?
         return Message(f"Multiple matching mods found: {', '.join(mod.name for mod in mods)}", ephemeral=True)
     else:  # Exactly one mod
         data = mods[0]
-    return Message(f"TODO add relevant information and format nicely // mod name: {data.name}", ephemeral=True)
+
+    return Message(
+        embed=Embed(
+            title=data.name,
+            description=data.summary,
+            url=data.profile_url,
+            timestamp=datetime.fromtimestamp(data.date_live).isoformat(),
+            image=embed.Media(
+                url=data.logo.thumb_640x360,
+            ),
+            footer=embed.Footer(
+                text=data.submitted_by.display_name_portal or data.submitted_by.username,
+                icon_url=data.submitted_by.avatar.thumb_50x50,
+            ),
+            author=embed.Author(
+                name=game_data.name,
+                url=game_data.profile_url,
+                icon_url=game_data.icon.thumb_64x64,
+            ),
+            color=BOT_COLOR,
+        ),
+        ephemeral=True,
+    )
+
 
 @mod_info.autocomplete()
 def mod_info_autocomplete(
@@ -169,7 +206,6 @@ def mod_info_autocomplete(
             query.append(Field("key").startswith(f"mod_{game.value}"))
         if mod.value != "":
             query.append(Field("name").contains(mod.value.casefold()))
-        breakpoint()
         mods = modio_mods_db.fetch(Query(*query))
         return [Choice(mod.modio_mod.name, str(mod.modio_mod.id)) for mod in mods]
     return []

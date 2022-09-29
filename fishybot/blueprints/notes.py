@@ -96,15 +96,15 @@ def get_note(ctx: Context, name: Autocomplete[str], ephemeral: bool = True):
 
 @notes.command("list", "List and preview all notes from your collection. If not ephemeral, anyone can see them.",
     annotations={
-        "ephemeral": "Send an ephemeral message. Otherwise, uses a Select Menu if you have up to 25 notes.",
-        "preview": "Include the start of each note."
+        "ephemeral": "Send an ephemeral message.",
+        "preview": "Include the start of each note, if you have more than 25 notes."
     }
 )
-def list_notes(ctx: Context, ephemeral: bool = False, preview: bool = True):
+def list_notes(ctx: Context, ephemeral: bool = True, preview: bool = True):
     user = database[ctx.author]
     user_notes = user.setdefault("notes", {})
 
-    if ephemeral or len(user_notes) > 25:
+    if len(user_notes) > 25:
         if preview:
             result = "\n".join(
                 f"{key}: {description if len(description) < 100 else description[:97]+'...'}"
@@ -125,23 +125,31 @@ def list_notes(ctx: Context, ephemeral: bool = False, preview: bool = True):
             options.append(
                 SelectMenuOption(name, name, description if preview else None),
             )
-        return Message("Select a note to see it:", components=[ActionRow([SelectMenu("notes_list", options)])])
+        return Message(
+            "Select a note to see it:",
+            components=[ActionRow([SelectMenu("notes_list", options)])],
+            ephemeral=ephemeral,
+        )
 
 
 @blueprint.custom_handler("notes_list")
 def show_full_note(ctx: Context):
-    if ctx.author.id != ctx.message.interaction.user.id:
-        return Message(
-            "Those are not your notes!",
-            ephemeral=True,
-        )
+    # if ctx.author.id != ctx.message.interaction.user.id:
+    #     return Message(
+    #         "Those are not your notes!",
+    #         ephemeral=True,
+    #     )
+    # name = ctx.values[0]
+    # return Message(
+    #     database[ctx.author]["notes"][name],
+    #     ephemeral=True,
+    # )
     name = ctx.values[0]
     return Message(
-        database[ctx.author]["notes"][name],
+        database[ctx.message.interaction.user]["notes"][name],
         ephemeral=True,
     )
     # NOTE: Add buttons later?
-    # Actually can you even add them to an ephemeral message?
 
 
 @notes.command("update")

@@ -18,7 +18,10 @@ If there are multiple matches to your search query, it will return a Select Menu
 
 xml_search_help = Embed(
     title="XML Search Help",
-    description="Searches for game records in the database that matches [XPath filters supported by Python](https://docs.python.org/3/library/xml.etree.elementtree.html#supported-xpath-syntax).",
+    description="Searches for game records in the database that matches"
+    " [XPath filters supported by Python](https://docs.python.org/3/library/xml.etree.elementtree.html#supported-xpath-syntax)."
+    " Ignores records that are not properly following the XML standard,"
+    " so it might miss a few records (even when searching the base game)",
     color=BOT_COLOR,
     fields=[
         embed.Field(
@@ -38,6 +41,12 @@ xml_search_help = Embed(
 )
 
 
+notes_help = """Create, Read, Update, Delete and List personal notes.
+**Do not store any kind of sensitive or inappropriate information.
+The bot's owner can see your notes at any time.**
+"""
+
+
 help_messages = {
     "help": Message(
         content="You are already using it!",
@@ -52,7 +61,7 @@ help_messages = {
         ephemeral=True,
     ),
     "notes": Message(
-        content="TODO add help for this (if it's really complex enough to warrant such?)",
+        content=notes_help,
         ephemeral=True,
     ),
     "other": Message(
@@ -71,7 +80,7 @@ bp = DiscordInteractionsBlueprint()
         Option(
             "command_name",
             str,
-            "Name of the command to get help about",
+            "Name of the command or module to get help about",
             True,
             choices=[
                 Choice(k, k)
