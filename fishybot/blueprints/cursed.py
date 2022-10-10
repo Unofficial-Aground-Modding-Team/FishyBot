@@ -1,10 +1,15 @@
 import random
 
 from deta_discord_interactions import Message
-# from deta_discord_interactions import Embed
+from deta_discord_interactions import embed
 # from deta_discord_interactions.models.embed import Media
 from deta_discord_interactions import DiscordInteractionsBlueprint
 from deta_discord_interactions.enums import PERMISSION
+from deta_discord_interactions.utils import cooldown
+
+import requests
+
+from common.config import BOT_COLOR
 
 bp = DiscordInteractionsBlueprint()
 
@@ -54,6 +59,61 @@ def waifu(
     else:
         seed = random.randrange(0, 100000)
     return f"https://www.thiswaifudoesnotexist.net/example-{seed}.jpg"
+
+
+# NOTE: Currently broken on deta, perhaps due to some IP blacklist or shared rate limit, despite working when testing locally
+@cursed.command(
+    name="lexica",
+    description="Fetches a random image from lexica.art",
+    annotations = dict(
+        query = "Query to search",
+    )
+)
+@cooldown('user', 5)
+def lexica(
+    ctx,
+    query: str,
+):
+    try:
+        result = requests.get("https://lexica.art/api/v1/search", {"q": query})
+        images = [img for img in result.json()["images"] if not img["nsfw"]]
+    except Exception as err:
+        from deta_discord_interactions.utils import Database, AutoSyncRecord
+        import uuid
+        db = Database("_cursed_lexica_errors", record_type=AutoSyncRecord)
+        with db[str(uuid.uuid4())] as record:
+            record["content"] = repr(result.content)
+            record["err"] = repr(err)
+        print(result.content)
+        raise
+    if not images:
+        return Message("Zero results found for that query", ephemeral=True)
+    random.shuffle(images)
+    priority = [
+        lambda img: not img['grid'] and img['width'] <= 512 and img['height'] <= 512,
+        lambda img: not img['grid'] and img['width'] <= 1024 and img['height'] <= 1024,
+        lambda img: img['width'] <= 1024 and img['height'] <= 1024,
+        lambda _: True,
+    ]
+    for condition in priority:
+        image = next(filter(condition, images), None)
+        if image is not None:
+            break
+    return Message(
+        embed=embed.Embed(
+            title=image["prompt"],
+            url=image["gallery"],
+            image=embed.Media(
+                image["src"],
+                None,
+                image['height'],
+                image['width'],
+            ),
+            color=BOT_COLOR,
+        )
+    )
+
+
 
 
 # @cursed.command(

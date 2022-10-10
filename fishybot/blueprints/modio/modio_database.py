@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from deta_discord_interactions.utils.database import (
     Database,
     Record,
+    AutoSyncRecord,
 )
 
 from deta_discord_interactions.utils.oauth import (
@@ -37,4 +38,4 @@ class ListenerRecord(Record):
 modio_games_db = Database("modio_games", record_type=GameRecord)
 modio_mods_db = Database("modio_mods", record_type=ModRecord)
 listeners_db = Database("modio_listeners", record_type=ListenerRecord)
-errors_db = Database("modio_errors")
+errors_db = Database("modio_errors", record_type=AutoSyncRecord)

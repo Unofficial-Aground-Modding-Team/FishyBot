@@ -1,12 +1,14 @@
 from main import app
 from deta_discord_interactions import Client
 from deta_discord_interactions import Context
+from deta_discord_interactions.models import User
 
 client = Client(app)
 
 commands = [
     # ("cursed", "furry"),
     # ("cursed", "waifu"),
+    # ("cursed", "lexica", "bird"),
 
     # ("search", "aground", "item", "wyrm"),
     # ("search", "aground", "item", "wyrm@mod@core"),
@@ -17,6 +19,7 @@ commands = [
     # ("xmlsearch", "aground", "recipe", """[@type="magic_forge"]"""),
 
     # ("xmlsearch", "aground", "item", """.//stat"""),
+    # ("xmlsearch", "aground", "object", """.//addedToArea"""),
     # ("xmlsearch", "aground", "item", """stat[@time]"""),
     # ("xmlsearch", "aground", "item", """stat[@max]"""),
 
@@ -33,6 +36,7 @@ commands = [
     # ("modio", "mod", "aground", "magic", True),
     # ("modio", "mod", "aground", "144"),
     # ("modio", "mod", "aground", "aster"),
+    # ("modio", "mod", "aground", "plus", True),
 
     # ("comments", "check"),
     # ("comments", "run"),
@@ -40,6 +44,7 @@ commands = [
 
 handlers = [
     # ("select_data", "wyrm@item@aground"),
+    # ("select_data", "nuke_blast@object@full@aground"),
 ]
 
 autocompletes = [
@@ -50,7 +55,8 @@ autocompletes = [
     # ("search", "aground", "item", ""),
     # ("search", "aground", ""),
     
-    # ("fullsearch", "aground_zero", ""),
+    # ("search", "stardander_revenant", ""),
+    # ("search", "stardander_demo", ""),
     
     # ("xmlsearch", ""),
 
@@ -60,9 +66,13 @@ autocompletes = [
     # ("modio", "mod", "34", ""),
 ]
 
-with open("test.log", 'w') as file:
+with open("test.log", 'a') as file:
     for command in commands:
-        ctx = Context(guild_id="903078036272975922")
+        ctx = Context(
+            guild_id="903078036272975922",
+            channel_id="903078036272975925",
+            author=User("256442550683041793", "etrotta"),
+        )
         with client.context(ctx):
             test = client.run(*command)
             print(command, test, end='\n\n')

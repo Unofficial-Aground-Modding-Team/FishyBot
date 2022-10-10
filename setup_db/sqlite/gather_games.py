@@ -122,6 +122,7 @@ def gather() -> tuple[dict[str, Game], dict[str, GameRecord]]:
     games = {
         "aground": Game("aground", 34, "Aground", None, True),
         "stardander_revenant": Game("stardander_revenant", -1, "Stardander Revenant", None, True),
+        "stardander_demo": Game("stardander_demo", -1, "Stardander Demo", None, True),
         # "aground_zero": Game("aground_zero", -1, "Aground Zero Playtest", None, False),
         # "stardander": Game("stardander", -1, "Stardander Playtest", None, False),
     }
@@ -176,5 +177,5 @@ if __name__ == "__main__":
 
     print()
     import random
-    pick = random.sample(list(records.items()), k=10)
+    pick = random.sample(list(records.items()), k=20)
     print(*pick, sep='\n\n\n')

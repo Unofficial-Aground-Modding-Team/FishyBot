@@ -20,7 +20,7 @@ def list_search_menu(data: list[GameRecord]):
     for item in data:
         options.append(SelectMenuOption(
             label=item.id,
-            value=f"{item.id}@{item.tag}@{item.game_id}",
+            value=f"{item.id}@{item.tag}@{item.mod}@{item.game_id}",
             description=item.path,
         ))
 
@@ -29,6 +29,7 @@ def list_search_menu(data: list[GameRecord]):
         options,
         placeholder="Select one...",
     )
+    # Callback on search.py
 
 
 @bp.command(

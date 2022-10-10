@@ -328,7 +328,7 @@ def get_new_comments(*_):
                 for reply in get_reply_origins_from_comment(game, mod, comment, listener):
                     description.append(
                         (_reply_indent * ".") + 
-                        f"""In response to **{comment.user.display_name_portal or comment.user.username}**"""
+                        f"""In response to **{reply.user.display_name_portal or reply.user.username}**"""
                         f""" saying: {reply.content.strip()}\n"""
                     )
                     _reply_indent += 4

@@ -19,13 +19,14 @@ from deta_discord_interactions import (
 
     ApplicationCommandType,
 )
-from deta_discord_interactions.utils import Database
+from deta_discord_interactions.utils.database import Database, AutoSyncRecord
 
 # kwarg to pass to all non-ephemeral Messages that might contain user inputted text
 no_mentions = {"allowed_mentions": {"parse": []}}
 
 blueprint = DiscordInteractionsBlueprint()
-database = Database()
+database = Database(record_type=AutoSyncRecord)
+
 def modal(name: str, description: str) -> Modal:
     return Modal(
         "create_note_modal",

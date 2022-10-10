@@ -29,6 +29,7 @@ def list_search_menu(data: list[GameRecord]):
     )
 
 
+# This callback is also used by xml_search
 @bp.custom_handler("select_data")
 def dropdown_callback(ctx: Context):
     id_, tag_, mod_, game_ = ctx.values[0].split("@")
