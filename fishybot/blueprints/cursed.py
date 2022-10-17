@@ -99,9 +99,20 @@ def lexica(
         image = next(filter(condition, images), None)
         if image is not None:
             break
+    _title = image["prompt"]
+    # If the full prompt is too large, remove the last words until it fits
+    # First try to remove comma separated tags
+    while len(_title) > 255:
+        _title = ', '.join(_title.rsplit(",", 1)[:-1]) + "..."
+    # If it's still too large, remove words separated by spaces
+    while len(_title) > 255:
+        _title = ' '.join(_title.rsplit(" ", 1)[:-1]) + "..."
+    # If it somehow still doesn't fist just cut off at a fixed length
+    if len(_title) > 255:
+        _title = _title[:100] + "..."
     return Message(
         embed=embed.Embed(
-            title=image["prompt"],
+            title=_title,
             url=image["gallery"],
             image=embed.Media(
                 image["src"],

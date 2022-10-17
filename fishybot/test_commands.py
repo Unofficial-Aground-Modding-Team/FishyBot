@@ -66,7 +66,7 @@ autocompletes = [
     # ("modio", "mod", "34", ""),
 ]
 
-with open("test.log", 'a') as file:
+with open("test.log", 'w', encoding='UTF-8') as file:
     for command in commands:
         ctx = Context(
             guild_id="903078036272975922",
