@@ -55,7 +55,7 @@ def get_game(game_id: int, force_update: bool = False) -> GameRecord:
 def get_mod(game_id: int, mod_id: int, force_update: bool = False) -> ModRecord:
     if not force_update:
         record = modio_mods_db.get(f'mod_{game_id}_{mod_id}')
-    if force_update or record.modio_mod is None:
+    if force_update or record is None or record.modio_mod is None:
         last_updated = int(time.time())
         response = requests.get(
             BASE_URL + f"/games/{game_id}/mods/{mod_id}",
