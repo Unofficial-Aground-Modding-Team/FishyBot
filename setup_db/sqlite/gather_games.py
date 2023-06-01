@@ -99,7 +99,7 @@ def crawl_file(
                 tag,
                 id_,
                 str(filepath.relative_to(prefix_path)).replace("\\", "/"),
-                game.is_public and (mod == "core" or mod == "full"),
+                game.is_public and (mod in ("core", "full", "hybrid_path", "colosseum")),
                 element.to_string(),
             )
 
