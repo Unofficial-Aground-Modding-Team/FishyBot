@@ -1,0 +1,36 @@
+# Spacefile Docs: https://go.deta.dev/docs/spacefile/v0
+v: 0
+micros:
+  - name: fishybot
+    src: micro
+    path: micro
+    engine: python3.9
+    run: python run.py
+    dev: python run_local.py
+    primary: true
+    public_routes:
+      - "/discord"
+      - "/oauth"
+    actions:
+      - id: "check_comments"
+        name: "Check Comments"
+        description: "Checks mod.io comments for registered games"
+        trigger: "schedule"
+        default_interval: "5 minutes"
+      - id: "trigger_repeaters"
+        name: "Trigger Repeaters"
+        description: "Trigger repeating webhooks"
+        trigger: "schedule"
+        default_interval: "1 minute"
+    presets:
+      env:
+        - name: DISCORD_CLIENT_ID
+          description: The ID of the Discord Application
+        - name: DISCORD_PUBLIC_KEY
+          description: The Public Key of the Discord Application
+        - name: DISCORD_CLIENT_SECRET
+          description: The Secret token of the Discord Application
+        - name: MODIO_API_KEY
+          description: The mod.io API Key
+        - name: DISCORD_ADMIN_ID
+          description: The User ID of the bot's owner

@@ -1,1 +1,0 @@
-git+https://github.com/etrotta/flask-discord-interactions@b0d9120673bf909c102b4f622ea51f3dbd1b2683
