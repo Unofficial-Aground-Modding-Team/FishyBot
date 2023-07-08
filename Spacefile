@@ -30,6 +30,8 @@ micros:
           description: The Public Key of the Discord Application
         - name: DISCORD_CLIENT_SECRET
           description: The Secret token of the Discord Application
+        - name: DISCORD_BOT_TOKEN
+          description: The Bot Token of the Discord Application
         - name: MODIO_API_KEY
           description: The mod.io API Key
         - name: DISCORD_ADMIN_ID

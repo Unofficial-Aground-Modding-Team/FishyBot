@@ -1,11 +1,13 @@
 from datetime import datetime
 import json
 import math
+import os
 import time
 import uuid
+import requests
 
 from deta_discord_interactions import (
-    DiscordInteractionsBlueprint,
+    # DiscordInteractionsBlueprint,
     Context,
     Message,
     Embed,
@@ -54,10 +56,12 @@ from fishybot.blueprints.modio.operations import (
     get_comments,
 )
 
-bp = DiscordInteractionsBlueprint()
+# seems like register() was only implemented for the DiscordInteractions, not for bps
+# just building on top of it works though I guess
+from fishybot.blueprints.modio.discord_follow import bp
 
 headers = {
-    "User-Agent": "Discord Bot by etrotta3846",
+    "User-Agent": "Discord Bot by etrotta",
     "X-Modio-Platform": "Windows",
     "X-Modio-Portal": "Discord",
     "Content-Type": "application/x-www-form-urlencoded",
@@ -355,6 +359,27 @@ def get_new_comments(*_):
                 color=BOT_COLOR,
             )
             embeds.append(embed_)
+
+            # TODO ASYNC OR THREADING THIS?
+            # Out of everything that won't scale with my current approach to the Watcher stuff,
+            # this bit is the one that will scale the worst of all
+            mod_record = modio_mods_db.get(f"mod_{game.id}_{mod.id}")
+            if mod_record is None:  # might wanna save it here? if it even can be None...
+                continue
+            token = os.getenv("DISCORD_BOT_TOKEN")
+            for listener_channel in mod_record.followers:
+                if token is None:
+                    print(f"Tried to DM {listener_channel} but the Token is not set")
+                else:
+                    response = requests.post(
+                        f"https://discord.com/api/v10/channels/{listener_channel}/messages",
+                        headers={"Authorization": f"Bot {token}", "User-Agent": "FishyBot)"},
+                        json={"embeds": [embed_.dump()]},
+                    )
+                    if not (200 <= response.status_code < 300):
+                        print(f"Got a non 2xx response DMing {listener_channel}: {response.status_code} {response.content}")
+                        token = None  # Minimal protection to avoid worsening things in case we hit a rate limit or something
+                        # TODO CHECK IF THE USER BLOCKED THE BOT?
 
     if not embeds:
         return

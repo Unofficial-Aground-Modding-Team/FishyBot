@@ -77,7 +77,7 @@ def test_search_autocomplete(client: Client, context: Context):
     with client.context(context):
         result = client.run_autocomplete("search", "agro")
         # TODO May have to update if/once I add Aground Zero
-        assert len(result.choices) == 1 and result.choices[0]["value"] == "aground"
+        assert len(result.choices) == 1 and result.choices[0].value == "aground"
         for query in [
             ("search", "aground", ""),
             ("search", "aground", "it"),

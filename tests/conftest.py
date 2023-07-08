@@ -7,6 +7,7 @@ os.environ["DONT_VALIDATE_SIGNATURE"] = "True"
 os.environ["DISCORD_CLIENT_ID"] = "123"
 os.environ["DISCORD_PUBLIC_KEY"] = "123"
 os.environ["DISCORD_CLIENT_SECRET"] = "123"
+os.environ["DISCORD_BOT_TOKEN"] = "123"
 
 os.environ["DETA_ORM_DATABASE_MODE"] = "MEMORY"
 os.environ["DETA_ORM_FORMAT_NICELY"] = "1"
