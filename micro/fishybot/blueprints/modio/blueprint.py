@@ -218,7 +218,6 @@ comment_commands = bp.command_group(
     "comments",
     "Manage the Comment watching part. For most part just leave this to etrotta.",
     default_member_permissions=PERMISSION.MANAGE_WEBHOOKS,
-    dm_permission=False,
 )
 
 @remember_callback
@@ -236,7 +235,7 @@ def register_listener(ctx: Context):
 def check_listener(ctx: Context):
     record = listeners_db.get(ctx.guild_id)
     if record is None:
-        return Message(f"No Listener found for this server", ephemeral=True)
+        return Message("No Listener found for this server", ephemeral=True)
     return Message(f"Enabled: {not record.disabled}, Last Updated: <t:{record.last_updated}>", ephemeral=True)
 
 @comment_commands.command("logs")
@@ -250,16 +249,28 @@ def get_errors(ctx: Context, limit: int = 10):
 
 # Games -> Events -> Mod comments -> ?Comment Replies to
 
-def handle_error(listener: ListenerRecord, reason: str, error):
-    listener.disabled = True
-    listeners_db[listener.key] = listener
-    errors_db.put(str(uuid.uuid4()), ErrorRecord({"reason": reason, "error": error, "listener": listener.key}))
+def report_error(listener: ListenerRecord, reason: str, error: Exception):
+    "Report an error but ignore it"
+    errors_db.put(str(uuid.uuid4()), ErrorRecord({"reason": reason, "error": repr(error), "listener": listener.key}))
     try:
-        listener.webhook_oauth.webhook.send(Message("An error happened, pls fix <@256442550683041793> - automatically disabling this listener."))
+        listener.webhook_oauth.webhook.send(Message("An error happened, but ignoring it. Pls look into it <@256442550683041793>"))
     except Exception:
         print("Failed to report error to webhook")
-        raise
-    raise Exception("Something went wrong")
+
+class ReportedError(Exception):
+    "Error that has already been reported"
+
+def handle_error(listener: ListenerRecord, reason: str, error: Exception):
+    "Report an error, disable the listener and exit out of the program"
+    listener.disabled = True
+    listeners_db[listener.key] = listener
+    errors_db.put(str(uuid.uuid4()), ErrorRecord({"reason": reason, "error": repr(error), "listener": listener.key}))
+    try:
+        listener.webhook_oauth.webhook.send(Message("An error happened, pls fix <@256442550683041793> - automatically disabling this listener."))
+    except Exception as err:
+        print("Failed to report error to webhook")
+        raise err from error
+    raise ReportedError("Something went wrong") from error
 
 
 def get_games() -> list[Modio_Game]:
@@ -282,15 +293,19 @@ def get_events_from_game(game: Modio_Game, listener: ListenerRecord) -> Modio_Ev
         except Exception as err:
             errors.append(err)
     else:
-        handle_error(listener, "modio triple error at events from game", str(errors))
+        handle_error(listener, "modio triple error at events from game", Exception(errors))
     return events
 
 
-def get_mods_from_events(game: Modio_Game, events: Modio_Events) -> list[Modio_Mod]:
+def get_mods_from_events(game: Modio_Game, events: Modio_Events, listener: ListenerRecord) -> list[Modio_Mod]:
     mod_ids = {event.mod_id for event in events.data}
-    mods = []
+    mods: list[Modio_Mod] = []
     for mod_id in mod_ids:
-        mods.append(get_mod(game.id, mod_id, force_update=False).modio_mod)
+        try:
+            mods.append(get_mod(game.id, mod_id, force_update=False).modio_mod)
+        except Exception as err:
+            print(f"Ignoring error on get mods for game {game.id} mod {mod_id}: {err}")
+            report_error(listener, f"Error on `get_mod` for {mod_id}", err)
     return mods
 
 def get_comments_from_mod(game: Modio_Game, mod: Modio_Mod, listener: ListenerRecord) -> Modio_Comments:
@@ -298,33 +313,62 @@ def get_comments_from_mod(game: Modio_Game, mod: Modio_Mod, listener: ListenerRe
         "_limit": 10,
         "date_added-min": listener.last_updated,
     }
-    return get_comments(game.id, mod.id, filters)
+    try:
+        return get_comments(game.id, mod.id, filters)
+    except Exception as err:
+        print(f"Ignoring error on get comments for game {game.id} mod {mod.id}: {err}")
+        report_error(listener, f"Error on `get_comments` for mod {mod.id}", err)
+        return Modio_Comments([], 0, 0, 10, 0)
+
 
 def get_reply_origins_from_comment(game: Modio_Game, mod: Modio_Mod, comment: Modio_Comment, listener: ListenerRecord) -> list[Modio_Comment]:
     "If a comment is a Reply, fetch the comments it is replying to."
     source = []
     while comment.reply_id:  # != 0 and is not None
-        comment = get_comment(game.id, mod.id, comment.reply_id)
-        source.append(comment)
+        try:
+            comment = get_comment(game.id, mod.id, comment.reply_id)
+            source.append(comment)
+        except Exception as err:
+            print(f"Ignoring error on get replies for game {game.id} mod {mod.id} comment {comment.id}: {err}")
+            report_error(listener, f"Error on get reply for mod {mod.id} comment {comment.id}", err)
+            break
     return source[::-1]
 
 # TODO use treading if the execution time becomes an issue
+# erm forget that TODO complete rewrite using asyncio
+
+def report_unexpected_errors(fun):
+    def wrapper(*args, **kwargs):
+        try:
+            listeners = listeners_db.fetch(Query(Field("disabled") == False))  # noqa: E712
+            if not listeners:
+                print("No active listeners")
+                return
+            return fun(listeners, *args, **kwargs)
+        except ReportedError:
+            raise
+        except Exception as err:
+            assert not isinstance(err, ReportedError)
+            msg = repr(err.args)
+            if 'key' in msg:
+                msg =  msg[:msg.index("key")] + "..."
+            handle_error(listeners[0], f"Unexpected error: {msg}", err)
+        finally:
+            import sys
+            sys.stdout.flush()
+            sys.stderr.flush()
+    return wrapper
 
 @bp.action("check_comments")
-def get_new_comments(*_):
+@report_unexpected_errors
+def get_new_comments(listeners: list[ListenerRecord], *_):
     NEW_LAST_UPDATED = math.floor(time.time())
-    listeners = listeners_db.fetch(Query(Field("disabled") == False))
-    if not listeners:
-        print("No active listeners")
-        return
     listener = listeners[0]
-
     embeds = []
     for game in get_games():
         events = get_events_from_game(game, listener)
-        for mod in get_mods_from_events(game, events):
+        for mod in get_mods_from_events(game, events, listener):
             description = []
-            comment: Modio_Comment
             # TODO: Consider getting all comments at once instead of getting the reply source multiple times
             for comment in get_comments_from_mod(game, mod, listener).data:
 

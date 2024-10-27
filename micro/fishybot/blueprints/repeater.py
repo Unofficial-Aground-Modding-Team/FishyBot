@@ -32,7 +32,6 @@ hooks = blueprint.command_group(
     name="repeat",
     description="Webhooks automatically invoked", 
     default_member_permissions=PERMISSION.MANAGE_MESSAGES | PERMISSION.MANAGE_WEBHOOKS,
-    dm_permission=False,
 )
 
 @remember_callback
