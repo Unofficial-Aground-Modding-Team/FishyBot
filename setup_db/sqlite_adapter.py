@@ -12,19 +12,19 @@ def insert_data(games: dict[str, Game], games_data: dict[str, GameRecord]):
     cur = database.cursor()
 
     for game in games.values():
-        game.data_types = ", ".join(game.data_types)
+        game.data_types = ", ".join(game.data_types) # type: ignore
     try:
         cur.execute("DROP TABLE IF EXISTS game")
         cur.execute("DROP TABLE IF EXISTS game_record")
 
         cur.execute("CREATE TABLE game (id, modio_id, full_name, data_types, is_public)")
         cur.execute("CREATE TABLE game_record (game_id, mod, tag, id, path, is_public, xml)")
+        
+        games_tuples = (dataclasses.astuple(game) for game in games.values())
+        games_data_tuples = (dataclasses.astuple(record) for record in games_data.values())
 
-        games = (dataclasses.astuple(game) for game in games.values())
-        games_data = (dataclasses.astuple(record) for record in games_data.values())
-
-        cur.executemany("INSERT INTO game VALUES (?, ?, ?, ?, ?)", games)
-        cur.executemany("INSERT INTO game_record VALUES (?, ?, ?, ?, ?, ?, ?)", games_data)
+        cur.executemany("INSERT INTO game VALUES (?, ?, ?, ?, ?)", games_tuples)
+        cur.executemany("INSERT INTO game_record VALUES (?, ?, ?, ?, ?, ?, ?)", games_data_tuples)
 
         database.commit()
     finally:

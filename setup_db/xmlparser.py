@@ -1,4 +1,18 @@
+"""
+Custom XML Parser created to convert Aground XML files into a more standard format
+(in particular, `&&`, `<` and such existing where they shouldn't causes normal parsers to error)
+"""
+
 import collections
+import textwrap
+import typing
+import re
+
+class _XmlDict(typing.TypedDict):
+    name: str
+    attributes: dict[str, str]
+    children: typing.NotRequired[list["_XmlDict"]]
+    text: typing.NotRequired[str]
 
 
 class XmlNode:
@@ -7,33 +21,54 @@ class XmlNode:
         self.attributes = attributes
         self.children = children
         self.text = text
-    
-    def to_string(self):
+
+    def get_children(self, name: str | None = None, recursive: bool = False) -> typing.Generator['XmlNode', None, None]:
+        for child in self.children:
+            if name is None or child.name == name:
+                yield child
+            if recursive:
+                yield from child.get_children(name, recursive)
+
+    def clean(self) -> None:
+        "Escapes special characters in this node and its children (modifies in place)"
+        self.text = escape(self.text)
+        self.attributes = {key: escape(value) for key, value in self.attributes.items()}
+        for child in self.get_children():
+            child.clean()
+
+    def __repr__(self) -> str:
+        _id = f"${self.attributes['id']}" if 'id' in self.attributes else ''
+        return f"XmlNode({self.name}{_id}, attributes={set(self.attributes)}, children={[child.name for child in self.children]})"
+
+    def __str__(self) -> str:
         _attrs = " ".join(f'''{key}="{value}"''' for key, value in self.attributes.items())
         if _attrs:
             _attrs = ' ' + _attrs
         if self.children:
-            _child = "\n".join(child.to_string() for child in self.children)
-            import textwrap
+            _child = "\n".join(child.__str__() for child in self.children)
             _child = textwrap.indent(_child, "    ")
             return f"""<{self.name}{_attrs}>\n{_child}\n</{self.name}>"""
         elif self.text:
-            if len(self.text) > 100:
-                return f"""<{self.name}{_attrs}>\n    {self.text}\n</{self.name}>"""
+            if '\n' in self.text:
+                text = textwrap.indent(textwrap.dedent(self.text).strip(), "    ")
+                return f"""<{self.name}{_attrs}>\n{text}\n</{self.name}>"""
             else:
-                return f"""<{self.name}{_attrs}>{self.text}<{self.name}>"""
+                return f"""<{self.name}{_attrs}>{self.text}</{self.name}>"""
         else:
             return f"""<{self.name}{_attrs}/>"""
-    
-    def to_dict(self):
-        result = {
+
+    def to_str(self) -> str:
+        return str(self)
+
+    def to_dict(self) -> _XmlDict:
+        result: _XmlDict = {
             "name": self.name,
             "attributes": self.attributes,
         }
         if self.children:
             result["children"] = [child.to_dict() for child in self.children]
-        if self.text.strip():
-            result["text"] = self.text.strip()
+        if (txt := self.text.strip()):
+            result["text"] = txt
         return result
 
 
@@ -42,8 +77,7 @@ class Parser:
         self._text = text
         self.buffer = collections.deque(text)
 
-    
-    def parse(self):
+    def parse(self, clean: bool = True) -> XmlNode:
         while True:
             try:
                 char = self.buffer.popleft()
@@ -55,14 +89,17 @@ class Parser:
                 continue
             if char == "<":
                 root = self.parse_element()
+                if clean:
+                    root.clean()
                 return root
 
-    def parse_element(self):
-        name, has_attributes, has_children = self.read_name()
+    def parse_element(self) -> XmlNode:
+        name, has_attributes, has_children = self._read_name()
         if has_attributes:
-            attributes, has_children = self.parse_attributes()
+            attributes, has_children = self._parse_attributes()
         else:
             attributes = {}
+        assert has_children is not None
         if has_children:
             children, text = self.parse_children(name)
         else:
@@ -70,7 +107,8 @@ class Parser:
             text = ""
         return XmlNode(name, attributes, children, text)
 
-    def read_name(self):
+    def _read_name(self) -> tuple[str, bool, bool | None]:
+        "Returned values: `name`, `has_attributes`, `has_children`"
         name = ''
         while True:
             character = self.buffer.popleft()
@@ -87,18 +125,18 @@ class Parser:
             elif not character.isspace():
                 name += character
 
-    def parse_attributes(self):
+    def _parse_attributes(self) -> tuple[dict[str, str], str]:
         attributes = {}
         while True:
             try:
-                name, value = self.parse_attribute()
+                name, value = self._parse_attribute()
             except StopIteration as err:
                 has_children = err.args[0]['has_children']
                 break
             attributes[name] = value
         return attributes, has_children
     
-    def parse_attribute(self):
+    def _parse_attribute(self) -> tuple[str, str]:
         name = ''
         while True:
             character = self.buffer.popleft()
@@ -122,8 +160,8 @@ class Parser:
             value += character
         return name, value        
 
-    def parse_children(self, node_name):
-        children = []
+    def parse_children(self, node_name: str) -> tuple[list[XmlNode], str]:
+        children: list[XmlNode] = []
         text = ""
         while True:
             character = self.buffer.popleft()
@@ -155,6 +193,23 @@ class Parser:
 def parse(text: str) -> XmlNode:
     return Parser(text).parse()
 
+_replacements = {
+    # '"': "&quot;",
+    # "'": "&apos;",
+    r"<": "&lt;",
+    r">": "&gt;",
+    r"&(?!(gt;|lt;|amp;))": "&amp;",
+}
+
+_replacements = [(re.compile(pattern), replacement) for pattern, replacement in _replacements.items()]
+
+def escape(string: str) -> str:
+    for pattern, replacement in _replacements:
+        string = re.sub(pattern, replacement, string)
+    return string
+
+
+
 if __name__ == "__main__":
 
     import pathlib
@@ -165,7 +220,7 @@ if __name__ == "__main__":
     data = parser.parse()
 
     with (pathlib.Path(__file__).parent / 'test_out.xml').open('w') as file:
-        file.write(data.to_string())
+        file.write(data.to_str())
 
     import json
     with (pathlib.Path(__file__).parent / 'test_out.json').open('w') as file:

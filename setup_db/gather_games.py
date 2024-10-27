@@ -38,7 +38,9 @@ def get_paths_to_search(prefix: Path, games: list[Game]) -> Generator[tuple[Game
 
 def should_ignore_node(element: XmlNode):
     if element.name == "tilesheet":
-        if re.match(r"\w+\.\d+", element.attributes.get("id")):
+        id_ = element.attributes.get("id")
+        assert id_ is not None
+        if re.match(r"\w+\.\d+", id_):
             return True
 
 
@@ -72,12 +74,13 @@ def crawl_file(
     with open(filepath, 'r', encoding='utf-8') as file:
         root = parse(file.read())
 
-    def process_element(element: XmlNode):
+    def process_element(element: XmlNode) -> Generator[GameRecord, None, None]:
         if should_ignore_node(element):
             return
         id_ = element.attributes.get("id")
         tag = element.name
         if tag == "include":
+            assert id_ is not None
             include_target: Path = filepath.parent / id_
             if include_target.is_file():
                 yield from crawl_file(
@@ -100,7 +103,7 @@ def crawl_file(
                 id_,
                 str(filepath.relative_to(prefix_path)).replace("\\", "/"),
                 game.is_public and (mod in ("core", "full", "hybrid_path", "colosseum")),
-                element.to_string(),
+                element.to_str(),
             )
 
     if include_root:
@@ -120,15 +123,14 @@ def gather() -> tuple[dict[str, Game], dict[str, GameRecord]]:
 
 
     games = {
-        "aground": Game("aground", 34, "Aground", None, True),
-        "stardander_revenant": Game("stardander_revenant", -1, "Stardander Revenant", None, True),
-        "stardander_demo": Game("stardander_demo", -1, "Stardander Demo", None, True),
-        # "aground_zero": Game("aground_zero", -1, "Aground Zero Playtest", None, False),
-        # "stardander": Game("stardander", -1, "Stardander Playtest", None, False),
+        "aground": Game("aground", 34, "Aground", [], True),
+        "aground_zero": Game("aground_zero", -1, "Aground Zero", [], True),
+        "stardander": Game("stardander", -1, "Stardander", [], True),
+        "revenant": Game("revenant", -1, "Stardander Revenant", [], True),
     }
     _games_tags: dict[str, set[str]] = {}
 
-    paths = get_paths_to_search(PREFIX, games.values())
+    paths = get_paths_to_search(PREFIX, list(games.values()))
     data: dict[str, GameRecord] = {}
 
     for (game, mod, full_path) in paths:

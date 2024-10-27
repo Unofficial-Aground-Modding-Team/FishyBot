@@ -2,15 +2,15 @@ import sqlite3
 
 from model import Game, GameRecord
 
-def get_games(cursor):
+def get_games(cursor: sqlite3.Cursor) -> list[Game]:
     cursor.execute("SELECT * FROM game LIMIT 10")
     results = [Game(*result) for result in cursor.fetchall()]
     for result in results:
-        result.data_types = sorted(result.data_types.split(", "))
+        result.data_types = sorted(result.data_types.split(", ")) # type: ignore
     return results
 
 
-def get_data(cursor):
+def get_data(cursor: sqlite3.Cursor) -> list[GameRecord]:
     cursor.execute("SELECT * FROM game_record LIMIT 10")
     return [GameRecord(*result) for result in cursor.fetchall()]
 
