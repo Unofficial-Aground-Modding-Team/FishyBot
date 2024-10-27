@@ -3,15 +3,18 @@ from dataclasses import dataclass
 
 @dataclass
 class Game:
+    # pk: int
     id: str  # internal identifier
     modio_id: int  # ID for mod.io
     full_name: str  # Display name for the game
     data_types: list[str]  # List of the tag types in the game
+    # ^ stored as a `, ` separated string though
     is_public: bool  # Restrict who can get that game's data with the bot commands
 
 
 @dataclass
 class GameRecord:
+    # pk: int
     game_id: str  # which game it is from
     mod: str  # which mod it is from
     tag: str  # tag type

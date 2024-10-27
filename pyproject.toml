@@ -1,0 +1,22 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "fishybot"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+authors = [
+  { name="etrotta", email="etrotta@duck.com" },
+]
+dependencies = [
+    "aiosqlite>=0.20.0",
+    "discord-py>=2.4.0",
+    "sqlalchemy>=2.0.36",
+]
+packages = ["fishybot"]
+
+[project.urls]
+"Homepage" = "https://github.com/Unofficial-Aground-Modding-Team/FishyBot"
