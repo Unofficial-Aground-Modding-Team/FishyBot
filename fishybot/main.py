@@ -2,6 +2,7 @@ import asyncio
 import os
 from pathlib import Path
 
+from discord.utils import setup_logging
 import discord.ext.commands as commands
 
 from fishybot.bot import FishyBot
@@ -12,6 +13,7 @@ DB_FILE = Path.cwd() / "fancyfish.sqlite"
 async def main():
     async with create_session(str(DB_FILE.resolve())) as session_pool:
         bot = FishyBot(session_pool)
+        setup_logging()
         await bot.load_extensions()
 
         @bot.command()
@@ -24,9 +26,13 @@ async def main():
             synced = await bot.tree.sync(guild=guild_id)
             await ctx.send(f"Synced {len(synced)} commands for this server")
 
-            # bot.tree.clear_commands(guild=None)
-            # await bot.tree.sync(guild=None)
-        
+        @bot.command()
+        @commands.is_owner()
+        async def reload(ctx: commands.Context) -> None:
+            """Reload Extensions"""
+            await bot.reload_extensions()
+            await ctx.send("Reloaded extensions", ephemeral=True)
+
         await bot.start(os.environ['BOT_TOKEN'])
 
 asyncio.run(main())

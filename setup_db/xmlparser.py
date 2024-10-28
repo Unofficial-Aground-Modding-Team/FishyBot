@@ -32,7 +32,8 @@ class XmlNode:
     def clean(self) -> None:
         "Escapes special characters in this node and its children (modifies in place)"
         self.text = escape(self.text)
-        self.attributes = {key: escape(value) for key, value in self.attributes.items()}
+        # TODO THINK SOME MORE ABOUT QUOTES
+        self.attributes = {key: escape(value).replace('"', "'") for key, value in self.attributes.items()}
         for child in self.get_children():
             child.clean()
 

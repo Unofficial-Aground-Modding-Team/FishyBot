@@ -4,6 +4,7 @@ import discord
 from discord import app_commands
 import discord.ext.commands as commands
 
+from sqlalchemy import ScalarResult, Select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 class FishyBot(commands.Bot):
@@ -29,6 +30,11 @@ class FishyBot(commands.Bot):
         self.cogs_dir = Path(__file__).parent / "cogs"
         self.database_connection = database_connection
 
+    async def query[T](self, statement: Select[tuple[T]]) -> ScalarResult[T]:
+        async with self.database_connection() as session:
+            return await session.scalars(statement)
+
+
     async def load_extensions(self):
         for file in self.cogs_dir.glob("*.py"):
             if file.name.startswith("_"):
@@ -39,3 +45,14 @@ class FishyBot(commands.Bot):
                 print(f"Loaded {rel}")
             except commands.ExtensionError as e:
                 print(f"Failed to load {file}: {e}")
+
+    async def reload_extensions(self):
+        for file in self.cogs_dir.glob("*.py"):
+            if file.name.startswith("_"):
+                continue
+            try:
+                rel = file.relative_to(Path.cwd())
+                await self.reload_extension(".".join(rel.with_suffix("").parts))
+                print(f"Reloaded {rel}")
+            except commands.ExtensionError as e:
+                print(f"Failed to reload {file}: {e}")

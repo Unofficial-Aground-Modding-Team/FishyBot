@@ -1,7 +1,7 @@
 import sqlite3
 
-from model import Game, GameRecord
-from gather_games import gather
+from setup_db.model import Game, GameRecord
+from setup_db.gather_games import gather
 
 import dataclasses
 
